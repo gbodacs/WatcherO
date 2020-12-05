@@ -36,7 +36,7 @@ numpy.random.seed(7)
 # load the dataset
 #url = "IBM_monthly.csv"
 dataframe = read_csv(inputfile, usecols=[4])
-epochNumber = 2
+epochNumber = 100
 train_size = int(len(dataframe) * 0.9)
 test_size = len(dataframe)-train_size
 predictLen = 25
@@ -71,19 +71,19 @@ model.add(Dense(1))
 model.compile(loss='mean_squared_error', optimizer='adam')
 model.fit(trainX, trainY, epochs=epochNumber, batch_size=1, verbose=2)
 
-#model.save(inputfile + "_model")
+model.save(inputfile + "_model")
 
 # make predictions
 trainPredict = model.predict(trainX)
 testPredict = model.predict(testX)
 
 for x in range(predictLen):
-    temp = testPredict[len(testPredict)-1]
-    print('Added predict: %.2f value' % (temp))
-    test = numpy.append(test, [temp], axis=0 )
-    testX, testY = create_dataset(test, look_back)
-    testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
-    testPredict = model.predict(testX)
+	temp = testPredict[len(testPredict)-1]
+	test = numpy.append(test, [temp], axis=0 )
+	testX, testY = create_dataset(test, look_back)
+	testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
+	testPredict = model.predict(testX)
+	print( "Using predicted: %.3f value predicted: %.3f" % (temp, testPredict[len(testPredict)-1]) )
 
 # invert predictions
 trainPredict = scaler.inverse_transform(trainPredict)
