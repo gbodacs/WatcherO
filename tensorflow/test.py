@@ -5,6 +5,7 @@ import math
 import random
 import sys, getopt
 from keras.models import Sequential
+from keras.models import load_model
 from keras.layers import Dense
 from keras.layers import Dropout
 from keras.layers import LSTM
@@ -25,60 +26,57 @@ def create_dataset(dataset, look_back=1):
 		dataY.append(dataset[i + look_back, 0])
 	return numpy.array(dataX), numpy.array(dataY)
 
-def main(argv):
-	inputfile = ''
-	outputfile = ''
-	try:
-		opts, args = getopt.getopt(argv,"hi:",["ifile="])
-	except getopt.GetoptError:
-        sys.exit(2)
+inputfile = sys.argv[1]
 
-	for opt, arg in opts:
-		if opt == '-h':
-			print 'test.py -i <inputfile>'
-			sys.exit()
-        elif opt in ("-i", "--ifile"):
-            inputfile = arg
-	print 'Input file is "', inputfile
-
-inputModel = "";
-if __name__ == "__main__":
-    inputModel = main(sys.argv[1:])
+print ('Input file is "', inputfile, '"')
 
 # fix random seed for reproducibility
 numpy.random.seed(7)
 
 # load the dataset
-url = "/Users/gbodacs/Projects/WatcherO/tensorflow/IBM.csv"
-dataframe = read_csv(url, usecols=[4])
-train_size = 0
-test_size = len(dataframe)
+#url = "IBM_monthly.csv"
+dataframe = read_csv(inputfile, usecols=[4])
+epochNumber = 2
+train_size = int(len(dataframe) * 0.9)
+test_size = len(dataframe)-train_size
 predictLen = 25
-epochNumber = 100
 
 dataset = dataframe.values
-dataset = dataset[0:train_size+test_size+predictLen]
+#dataset = dataset[0:train_size+test_size+predictLen]
 dataset = dataset.astype('float32')
 
 # normalize the dataset
 scaler = MinMaxScaler(feature_range=(0, 1))
 dataset = scaler.fit_transform(dataset)
-# load test sets
 
-test = dataset[0:test_size,:]
+# load test sets
+train, test = dataset[0:train_size,:], dataset[train_size:train_size+test_size,:]
 
 # reshape into X=t and Y=t+1
 look_back = 1
+trainX, trainY = create_dataset(train, look_back)
 testX, testY = create_dataset(test, look_back)
 
 # reshape input to be [samples, time steps, features]
+trainX = numpy.reshape(trainX, (trainX.shape[0], 1, trainX.shape[1]))
 testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
 
 # load model
-model = keras.models.load_model(inputfile)
+#model = load_model(inputfile)
+# # create and fit the LSTM network
+model = Sequential()
+model.add(LSTM(4, input_shape=(1, look_back)))
+model.add(Dropout(0.2))
+model.add(Dense(1))
+model.compile(loss='mean_squared_error', optimizer='adam')
+model.fit(trainX, trainY, epochs=epochNumber, batch_size=1, verbose=2)
+
+#model.save(inputfile + "_model")
 
 # make predictions
+trainPredict = model.predict(trainX)
 testPredict = model.predict(testX)
+
 for x in range(predictLen):
     temp = testPredict[len(testPredict)-1]
     print('Added predict: %.2f value' % (temp))
@@ -88,10 +86,14 @@ for x in range(predictLen):
     testPredict = model.predict(testX)
 
 # invert predictions
+trainPredict = scaler.inverse_transform(trainPredict)
+trainY = scaler.inverse_transform([trainY])
 testPredict = scaler.inverse_transform(testPredict)
 testY = scaler.inverse_transform([testY])
 
 # calculate root mean squared error
+trainScore = math.sqrt(mean_squared_error(trainY[0], trainPredict[:,0]))
+print('Train Score: %.2f RMSE' % (trainScore))
 testScore = math.sqrt(mean_squared_error(testY[0], testPredict[:,0]))
 print('Test Score: %.2f RMSE' % (testScore))
 
@@ -99,16 +101,23 @@ truePredict = testPredict[-predictLen:]
 testPredict = testPredict[0:-predictLen]
 
 # shift test predictions for plotting
+trainPredictPlot = numpy.empty_like(dataset)
+trainPredictPlot[:, :] = numpy.nan
+trainPredictPlot[look_back:len(trainPredict)+look_back, :] = trainPredict
+
 testPredictPlot = numpy.empty_like(dataset)
 testPredictPlot[:, :] = numpy.nan
-testPredictPlot[look_back*2+1:len(testPredictPlot)-1-predictLen, :] = testPredict
+testPredictPlot[-len(testPredict):, :] = testPredict
 
 truePredictPlot = numpy.empty_like(dataset)
+for x in range(predictLen):
+	truePredictPlot = numpy.append(truePredictPlot, [[numpy.nan]], axis=0)
 truePredictPlot[:, :] = numpy.nan
-truePredictPlot[-predictLen-1:len(testPredictPlot)-1, :] = truePredict
+truePredictPlot[-predictLen-1:len(truePredictPlot)-1, :] = truePredict
 
 # plot baseline and predictions
 plt.plot(scaler.inverse_transform(dataset))
+plt.plot(trainPredictPlot)
 plt.plot(testPredictPlot)
 plt.plot(truePredictPlot)
 plt.show()
