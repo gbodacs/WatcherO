@@ -18,13 +18,20 @@ from sklearn.metrics import mean_squared_error
 # predict.py: predict the future using the saved model and a database
 #
 # convert an array of values into a dataset matrix
-def create_dataset(dataset, look_back=1):
+def create_dataset_learn(dataset, look_back=1):
 	dataX, dataY = [], []
 	for i in range(len(dataset)-look_back-1):
 		a = dataset[i:(i+look_back), 0]
 		dataX.append(a)
 		dataY.append(dataset[i + look_back, 0])
 	return numpy.array(dataX), numpy.array(dataY)
+
+def create_dataset_predict(dataset, look_back=1):
+	dataX = []
+	for i in range(len(dataset)-(look_back-1)):
+		a = dataset[i:(i+look_back), 0]
+		dataX.append(a)
+	return numpy.array(dataX)
 
 inputfile = sys.argv[1]
 
@@ -54,8 +61,8 @@ train, test = dataset[0:train_size,:], dataset[train_size:train_size+test_size,:
 
 # reshape into X=t and Y=t+1
 look_back = 1
-trainX, trainY = create_dataset(train, look_back)
-testX, testY = create_dataset(test, look_back)
+trainX, trainY = create_dataset_learn(train, look_back)
+testX, testY = create_dataset_learn(test, look_back)
 
 # reshape input to be [samples, time steps, features]
 trainX = numpy.reshape(trainX, (trainX.shape[0], 1, trainX.shape[1]))
@@ -80,7 +87,7 @@ testPredict = model.predict(testX)
 for x in range(predictLen):
 	temp = testPredict[len(testPredict)-1]
 	test = numpy.append(test, [temp], axis=0 )
-	testX, testY = create_dataset(test, look_back)
+	testX, testY = create_dataset_predict(test, look_back)
 	testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
 	testPredict = model.predict(testX)
 	print( "Using predicted: %.3f value predicted: %.3f" % (temp, testPredict[len(testPredict)-1]) )
