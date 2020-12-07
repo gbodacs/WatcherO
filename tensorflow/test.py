@@ -21,14 +21,16 @@ from sklearn.metrics import mean_squared_error
 def create_dataset_learn(dataset, look_back=1):
 	dataX, dataY = [], []
 	for i in range(len(dataset)-look_back-1):
-		dataX.append([dataset[i, 0]])
+		a = dataset[i:(i+look_back), 0]
+		dataX.append(a)
 		dataY.append(dataset[i + look_back, 0])
 	return numpy.array(dataX), numpy.array(dataY)
 
 def create_dataset_predict(dataset, look_back=1):
 	dataX, dataY = [], []
-	for i in range(len(dataset)):
-		dataX.append([dataset[i, 0]])
+	for i in range(len(dataset)-look_back-1):
+		a = dataset[i:(i+look_back), 0]
+		dataX.append(a)
 	return numpy.array(dataX)
 
 inputfile = sys.argv[1]
@@ -41,14 +43,17 @@ numpy.random.seed(7)
 # load the dataset
 #url = "IBM_monthly.csv"
 dataframe = read_csv(inputfile, usecols=[4])
-dataframe = dataframe[0:288]
+
 epochNumber = 100
 train_size = int(len(dataframe) * 0.9)
 test_size = len(dataframe)-train_size
-predictLen = 10
+predictLen = 15
 
 dataset = dataframe.values
 dataset = dataset.astype('float32')
+dataset_orig = dataset
+dataset = dataset[0:-90]
+
 
 # normalize the dataset
 scaler = MinMaxScaler(feature_range=(0, 1))
@@ -58,7 +63,7 @@ dataset = scaler.fit_transform(dataset)
 train, test = dataset[0:train_size,:], dataset[train_size:train_size+test_size,:]
 
 # reshape into X=t and Y=t+1
-look_back = 1
+look_back = 5
 trainX, trainY = create_dataset_learn(train, look_back)
 testX, testY = create_dataset_learn(test, look_back)
 
@@ -87,11 +92,11 @@ print ('Model loaded!')
 
 # make predictions
 trainPredict = model.predict(trainX)
-#testPredict = model.predict(testX)
-
-testX = create_dataset_predict(test, look_back)
-testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
 testPredict = model.predict(testX)
+
+# testX = create_dataset_predict(test, look_back)
+# testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
+# testPredict = model.predict(testX)
 
 for x in range(predictLen):
 	temp = testPredict[-1]
@@ -113,7 +118,7 @@ testPredict = testPredict[0:-predictLen]
 # calculate root mean squared error
 trainScore = math.sqrt(mean_squared_error(trainY[0], trainPredict[:,0]))
 print('Train Score: %.2f RMSE' % (trainScore))
-testScore = math.sqrt(mean_squared_error(testY[0], testPredict[:-2,0]))
+testScore = math.sqrt(mean_squared_error(testY[0], testPredict[:,0]))
 print('Test Score: %.2f RMSE' % (testScore))
 
 # shift test predictions for plotting
@@ -136,4 +141,5 @@ plt.plot(scaler.inverse_transform(dataset))
 plt.plot(trainPredictPlot)
 plt.plot(testPredictPlot)
 plt.plot(truePredictPlot)
+plt.plot(dataset_orig)
 plt.show()
