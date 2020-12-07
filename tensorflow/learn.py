@@ -4,8 +4,10 @@ from pandas import read_csv
 import math
 import random
 import sys, getopt
+from keras.optimizers import SGD
 from keras.models import Sequential
 from keras.models import load_model
+from keras.callbacks import Callback
 from keras.layers import Dense
 from keras.layers import Dropout
 from keras.layers import LSTM
@@ -17,17 +19,38 @@ from sklearn.metrics import mean_squared_error
 #	- use some params to predict not only one element in the future
 # predict.py: predict the future using the saved model and a database
 #
+# Implement callback function to stop training
+# when accuracy reaches ACCURACY_THRESHOLD
+ACCURACY_THRESHOLD = 0.95
+
+class myCallback(Callback):
+	def on_epoch_end(self, epoch, logs={}):
+		if(logs.get('acc') > ACCURACY_THRESHOLD):
+			print("\nReached %2.2f%% accuracy, so stopping training!!" %(ACCURACY_THRESHOLD*100))
+			self.model.stop_training = True
+
+# Instantiate a callback object
+callbacks = myCallback()
+
 # convert an array of values into a dataset matrix
 def create_dataset_learn(dataset, look_back=1):
 	dataX, dataY = [], []
 	for i in range(len(dataset)-look_back-1):
-		dataX.append([dataset[i, 0]])
+		a = dataset[i:(i+look_back), 0]
+		dataX.append(a)
 		dataY.append(dataset[i + look_back, 0])
 	return numpy.array(dataX), numpy.array(dataY)
 
+# def create_dataset_learn(dataset, look_back=1):
+# 	dataX, dataY = [], []
+# 	for i in range(len(dataset)-look_back-1):
+# 		dataX.append([dataset[i, 0]])
+# 		dataY.append(dataset[i + look_back, 0])
+# 	return numpy.array(dataX), numpy.array(dataY)
+
 inputfile = sys.argv[1]
 
-print ('Input file is "', inputfile, '"')
+print ('Input CSV file is "', inputfile, '"')
 
 # fix random seed for reproducibility
 numpy.random.seed(7)
@@ -35,8 +58,8 @@ numpy.random.seed(7)
 # load the dataset
 #url = "IBM_monthly.csv"
 dataframe = read_csv(inputfile, usecols=[4])
-epochNumber = 50
-train_size = int(len(dataframe) * 0.9)
+epochNumber = 100
+train_size = int(len(dataframe) * 0.95)
 test_size = len(dataframe)-train_size
 
 dataset = dataframe.values
@@ -50,7 +73,7 @@ dataset = scaler.fit_transform(dataset)
 train, test = dataset[0:train_size,:], dataset[train_size:train_size+test_size,:]
 
 # reshape into X=t and Y=t+1
-look_back = 1
+look_back = 5
 trainX, trainY = create_dataset_learn(train, look_back)
 testX, testY = create_dataset_learn(test, look_back)
 
@@ -60,11 +83,10 @@ testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
 
 # # create and fit the LSTM network
 model = Sequential()
-model.add(LSTM(512, input_shape=(1, look_back)))
-#model.add(Dropout(0.2))
-model.add(Dense(1))
-model.compile(loss='mean_squared_error', optimizer='adam')
-model.fit(trainX, trainY, epochs=epochNumber, batch_size=4, verbose=2)
+model.add(LSTM(1024, input_shape=(1, look_back)))
+model.add(Dense(1, activation='sigmoid'))
+model.compile(loss='mean_squared_error', optimizer="sgd", metrics=['acc'])
+model.fit(trainX, trainY, epochs=epochNumber, batch_size=1, verbose=2, callbacks=[callbacks])
 
 model.save(inputfile + "_model")
 
