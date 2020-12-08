@@ -73,7 +73,7 @@ dataset = scaler.fit_transform(dataset)
 train, test = dataset[0:train_size,:], dataset[train_size:train_size+test_size,:]
 
 # reshape into X=t and Y=t+1
-look_back = 5
+look_back = 15
 trainX, trainY = create_dataset_learn(train, look_back)
 testX, testY = create_dataset_learn(test, look_back)
 
@@ -83,9 +83,12 @@ testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
 
 # # create and fit the LSTM network
 model = Sequential()
-model.add(LSTM(1024, input_shape=(1, look_back)))
-model.add(Dense(1, activation='sigmoid'))
-model.compile(loss='mean_squared_error', optimizer="sgd", metrics=['acc'])
+model.add(LSTM(40, activation='relu', return_sequences=True, input_shape=(1, look_back)))
+model.add(LSTM(40, activation='relu', return_sequences=True))
+model.add(LSTM(40, activation='relu', return_sequences=True))
+model.add(LSTM(40, activation='relu'))
+model.add(Dense(1)) 
+model.compile(loss='mean_squared_error', optimizer="adam", metrics=['acc'])
 model.fit(trainX, trainY, epochs=epochNumber, batch_size=1, verbose=2, callbacks=[callbacks])
 
 model.save(inputfile + "_model")

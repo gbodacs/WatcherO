@@ -20,15 +20,15 @@ from sklearn.metrics import mean_squared_error
 # convert an array of values into a dataset matrix
 def create_dataset_learn(dataset, look_back=1):
 	dataX, dataY = [], []
-	for i in range(len(dataset)-look_back-1):
+	for i in range(len(dataset)-look_back):
 		a = dataset[i:(i+look_back), 0]
 		dataX.append(a)
 		dataY.append(dataset[i + look_back, 0])
 	return numpy.array(dataX), numpy.array(dataY)
 
 def create_dataset_predict(dataset, look_back=1):
-	dataX, dataY = [], []
-	for i in range(len(dataset)-look_back-1):
+	dataX = []
+	for i in range(len(dataset)-look_back):
 		a = dataset[i:(i+look_back), 0]
 		dataX.append(a)
 	return numpy.array(dataX)
@@ -44,15 +44,15 @@ numpy.random.seed(7)
 #url = "IBM_monthly.csv"
 dataframe = read_csv(inputfile, usecols=[4])
 
-epochNumber = 100
-train_size = int(len(dataframe) * 0.9)
-test_size = len(dataframe)-train_size
-predictLen = 15
-
 dataset = dataframe.values
 dataset = dataset.astype('float32')
 dataset_orig = dataset
-dataset = dataset[0:-90]
+dataset = dataset[0:-63]
+
+epochNumber = 100
+train_size = int(len(dataset) * 0.9)
+test_size = len(dataset)-train_size
+predictLen = 15
 
 
 # normalize the dataset
@@ -63,7 +63,7 @@ dataset = scaler.fit_transform(dataset)
 train, test = dataset[0:train_size,:], dataset[train_size:train_size+test_size,:]
 
 # reshape into X=t and Y=t+1
-look_back = 5
+look_back = 15
 trainX, trainY = create_dataset_learn(train, look_back)
 testX, testY = create_dataset_learn(test, look_back)
 
@@ -100,6 +100,7 @@ testPredict = model.predict(testX)
 
 for x in range(predictLen):
 	temp = testPredict[-1]
+
 	test = numpy.append(test, [temp], axis=0 )
 	testX = create_dataset_predict(test, look_back)
 	testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
@@ -121,15 +122,17 @@ print('Train Score: %.2f RMSE' % (trainScore))
 testScore = math.sqrt(mean_squared_error(testY[0], testPredict[:,0]))
 print('Test Score: %.2f RMSE' % (testScore))
 
-# shift test predictions for plotting
+# train predictions for plotting
 trainPredictPlot = numpy.empty_like(dataset)
 trainPredictPlot[:, :] = numpy.nan
-trainPredictPlot[0:len(trainPredict), :] = trainPredict
+trainPredictPlot[look_back:len(trainPredict)+look_back, :] = trainPredict
 
+# test predictions for plotting
 testPredictPlot = numpy.empty_like(dataset)
 testPredictPlot[:, :] = numpy.nan
-testPredictPlot[-len(testPredict):, :] = testPredict
+testPredictPlot[len(trainPredict)+(look_back*2):len(testPredictPlot), :] = testPredict
 
+# true predictions for plotting
 truePredictPlot = numpy.empty_like(dataset)
 for x in range(predictLen):
 	truePredictPlot = numpy.append(truePredictPlot, [[numpy.nan]], axis=0)
