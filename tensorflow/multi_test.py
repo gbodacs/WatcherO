@@ -4,24 +4,71 @@ from pandas import read_csv
 import math
 import random
 import sys, getopt
+from keras.optimizers import SGD
 from keras.models import Sequential
 from keras.models import load_model
+from keras.callbacks import Callback
 from keras.layers import Dense
 from keras.layers import Dropout
 from keras.layers import LSTM
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
+ 
+# split a univariate sequence into samples
+def split_sequence(sequence, n_steps_in, n_steps_out):
+	X, y = list(), list()
+	for i in range(len(sequence)):
+		# find the end of this pattern
+		end_ix = i + n_steps_in
+		out_end_ix = end_ix + n_steps_out
+		# check if we are beyond the sequence
+		if out_end_ix > len(sequence):
+			break
+		# gather input and output parts of the pattern
+		seq_x, seq_y = sequence[i:end_ix], sequence[end_ix:out_end_ix]
+		X.append(seq_x)
+		y.append(seq_y)
+	return numpy.array(X), numpy.array(y)
 
+inputfile = sys.argv[1] 
+print ('Input CSV file is "', inputfile, '"')
+
+# fix random seed for reproducibility
+numpy.random.seed(7)
+
+# load the dataset
+#url = "IBM_monthly.csv"
+dataframe = read_csv(inputfile, usecols=[4])
+epochNumber = 100
+train_size = int(len(dataframe) * 0.95)
+test_size = len(dataframe)-train_size
+
+dataset = dataframe.values
+dataset = dataset.astype('float32')
+
+# normalize the dataset
+scaler = MinMaxScaler(feature_range=(0, 1))
+dataset = scaler.fit_transform(dataset)
+
+# choose a number of time steps
+n_steps_in, n_steps_out = 10, 8
+# split into samples
+X, y = split_sequence(dataset[:,0], n_steps_in, n_steps_out)
+# reshape from [samples, timesteps] into [samples, timesteps, features]
+n_features = 1
+X = X.reshape((X.shape[0], X.shape[1], n_features))
+# define model
 model = Sequential()
-model.add(LSTM(200, activation='relu', input_shape=(n_steps_in, n_features)))
-model.add(RepeatVector(n_steps_out))
-model.add(LSTM(200, activation='relu', return_sequences=True))
-model.add(TimeDistributed(Dense(n_features)))
-model.compile(optimizer='adam', loss='mse')
+model.add(LSTM(50, activation='relu', return_sequences=True, input_shape=(n_steps_in, n_features)))
+model.add(LSTM(50, activation='relu'))
+model.add(Dense(n_steps_out))
+model.compile(optimizer='adam', loss='mse', metrics=['acc'])
+
 # fit model
-model.fit(X, y, epochs=300, verbose=0)
+model.fit(X, y, epochs=100, verbose=2)
+
 # demonstrate prediction
-x_input = array([[60, 65, 125], [70, 75, 145], [80, 85, 165]])
+x_input = numpy.array([11010, 11020, 11030, 11040, 11050, 11060, 11070, 11080, 11090, 11100])
 x_input = x_input.reshape((1, n_steps_in, n_features))
 yhat = model.predict(x_input, verbose=0)
 print(yhat)
