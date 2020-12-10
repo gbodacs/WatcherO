@@ -40,34 +40,42 @@ print ('Input model file is '+inputModelFile)
 
 #load and scale the input data
 dataframe = read_csv(inputfile, usecols=[4])
-dataset = dataframe.values
-dataset = dataset.astype('float32')
-dataset_orig = dataset
+dataSet = dataframe.values
+dataSet = dataSet.astype('float32')
+dataset_orig = dataSet
 
 dataScaler = MinMaxScaler(feature_range=(0, 1))
-dataset = dataScaler.fit_transform(dataset)
+dataSet = dataScaler.fit_transform(dataSet)
+trainLen = int(len(dataSet)*.90)
+testLen  = len(dataSet)-trainLen
+
+dataSet, dataTestSet = dataSet[0:trainLen,:], dataSet[trainLen:trainLen+testLen,:]
 
 #load and test volumen
 volumeframe = read_csv(inputfile, usecols=[6])
-volumeset = volumeframe.values
-volumeset = volumeset.astype('float32')
+volumeSet = volumeframe.values
+volumeSet = volumeSet.astype('float32')
 volumeScaler = MinMaxScaler(feature_range=(0, 1))
-volumeset = volumeScaler.fit_transform(volumeset)
+volumeSet = volumeScaler.fit_transform(volumeSet)
+
+volumeSet, volumeTestSet = volumeSet[0:trainLen,:], volumeSet[trainLen:trainLen+testLen,:]
 
 #Set learn train
-out_seq = array([dataset[i]*2 for i in range(len(volumeset))])
 # convert to [rows, columns] structure
-dataset = dataset.reshape((len(dataset), 1))
-volumeset = volumeset.reshape((len(volumeset), 1))
-out_seq = out_seq.reshape((len(out_seq), 1))
+dataSet = dataSet.reshape((len(dataSet), 1))
+volumeSet = volumeSet.reshape((len(volumeSet), 1))
 
 # train_size = int(len(dataset) * 0.9)
 # test_size = len(dataset)-train_size
 # train, test = dataset[0:train_size,:], dataset[train_size:train_size+test_size,:]
-dataset2 = hstack((dataset, volumeset))
+LearnSet = hstack((dataSet, volumeSet))
 n_steps_in, n_steps_out = 10, 3
-X, y = split_sequences(dataset2, n_steps_in, n_steps_out)
+X, y = split_sequences(LearnSet, n_steps_in, n_steps_out)
 n_features = X.shape[2]
+
+TestSet = hstack((dataTestSet, volumeTestSet))
+n_steps_in, n_steps_out = 10, 3
+Xtest, ytest = split_sequences(TestSet, n_steps_in, n_steps_out)
 
 # load model
 print ('Load model...')
@@ -76,7 +84,7 @@ print ('Model loaded!')
 
 # make predictions
 trainPredict = model.predict(X)
-#testPredict = model.predict(Xtest)
+testPredict = model.predict(Xtest)
 
 
 # invert predictions
@@ -89,25 +97,44 @@ trainPredict = model.predict(X)
 # print('Test Score: %.2f RMSE' % (testScore))
 
 # train predictions for plotting
-trainPredictPlot1 = numpy.empty_like(dataset)
+trainPredictPlot1 = numpy.empty_like(dataSet)
 trainPredictPlot1[:, :] = numpy.nan
 trainPredictPlot1[n_steps_in-1:len(trainPredict)+n_steps_in-1, :] = trainPredict[:,0:1,0]
 
-trainPredictPlot2 = numpy.empty_like(dataset)
+trainPredictPlot2 = numpy.empty_like(dataSet)
 trainPredictPlot2[:, :] = numpy.nan
 trainPredictPlot2[n_steps_in-1:len(trainPredict)+n_steps_in-1, :] = trainPredict[:,1:2,0]
 
-trainPredictPlot3 = numpy.empty_like(dataset)
+trainPredictPlot3 = numpy.empty_like(dataSet)
 trainPredictPlot3[:, :] = numpy.nan
 trainPredictPlot3[n_steps_in-1:len(trainPredict)+n_steps_in-1, :] = trainPredict[:,2:3,0]
+
+#
+testPredictPlot1 = numpy.empty_like(dataset_orig)
+testPredictPlot1[:, :] = numpy.nan
+testPredictPlot1[len(trainPredict)+n_steps_in*2:len(trainPredict)+len(testPredict)+n_steps_in*2, :] = testPredict[:,0:1,0]
+
+testPredictPlot2 = numpy.empty_like(dataset_orig)
+testPredictPlot2[:, :] = numpy.nan
+testPredictPlot2[len(trainPredict)+n_steps_in*2:len(trainPredict)+len(testPredict)+n_steps_in*2, :] = testPredict[:,1:2,0]
+
+testPredictPlot3 = numpy.empty_like(dataset_orig)
+testPredictPlot3[:, :] = numpy.nan
+testPredictPlot3[len(trainPredict)+n_steps_in*2:len(trainPredict)+len(testPredict)+n_steps_in*2, :] = testPredict[:,2:3,0]
 
 
 # plot baseline and predictions
 plt.xlabel('Time (days)')
 plt.ylabel('Price')
 plt.suptitle("Data from: "+inputfile)
+plt.plot(dataset_orig, color='#dddddd')
 plt.plot(dataScaler.inverse_transform(trainPredictPlot1), color='#0533aa')
 plt.plot(dataScaler.inverse_transform(trainPredictPlot2), color='#1144cc')
 plt.plot(dataScaler.inverse_transform(trainPredictPlot3), color='#2255ee')
-plt.plot(dataset_orig, color='#dddddd')
+
+plt.plot(dataScaler.inverse_transform(testPredictPlot1), color='#5533aa')
+plt.plot(dataScaler.inverse_transform(testPredictPlot2), color='#7744cc')
+plt.plot(dataScaler.inverse_transform(testPredictPlot3), color='#9955ee')
+plt.legend(('Original', 'Train next day', 'Train +2 day', 'Train +3 day', 'Test next day', 'Test +2 day', 'Test +3 day'),
+           loc='upper left')
 plt.show()
