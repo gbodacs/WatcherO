@@ -49,14 +49,12 @@ def create_dataset_learn(dataset, look_back=1):
 # 	return numpy.array(dataX), numpy.array(dataY)
 
 inputfile = sys.argv[1]
-
 print ('Input CSV file is "', inputfile, '"')
 
 # fix random seed for reproducibility
 numpy.random.seed(7)
 
 # load the dataset
-#url = "IBM_monthly.csv"
 dataframe = read_csv(inputfile, usecols=[4])
 epochNumber = 100
 train_size = int(len(dataframe) * 0.95)
@@ -83,10 +81,10 @@ testX = numpy.reshape(testX, (testX.shape[0], 1, testX.shape[1]))
 
 # # create and fit the LSTM network
 model = Sequential()
-model.add(LSTM(40, activation='relu', return_sequences=True, input_shape=(1, look_back)))
-model.add(LSTM(40, activation='relu', return_sequences=True))
-model.add(LSTM(40, activation='relu', return_sequences=True))
-model.add(LSTM(40, activation='relu'))
+model.add(LSTM(45, activation='relu', return_sequences=True, input_shape=(1, look_back)))
+model.add(LSTM(45, activation='relu', return_sequences=True))
+model.add(LSTM(45, activation='relu', return_sequences=True))
+model.add(LSTM(45, activation='relu'))
 model.add(Dense(1)) 
 model.compile(loss='mean_squared_error', optimizer="adam", metrics=['acc'])
 model.fit(trainX, trainY, epochs=epochNumber, batch_size=1, verbose=2, callbacks=[callbacks])

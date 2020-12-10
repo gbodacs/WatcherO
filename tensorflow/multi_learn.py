@@ -1,11 +1,24 @@
 # multivariate multi-step encoder-decoder lstm example
+import numpy
 from numpy import array
 from numpy import hstack
+import matplotlib.pyplot as plt
+from pandas import read_csv
+import math
+import random
+import sys, getopt
+from keras.optimizers import SGD
 from keras.models import Sequential
-from keras.layers import LSTM
+from keras.models import load_model
+from keras.callbacks import Callback
 from keras.layers import Dense
+from keras.layers import Dropout
+from keras.layers import LSTM
 from keras.layers import RepeatVector
 from keras.layers import TimeDistributed
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_squared_error
+
 
 # split a multivariate sequence into samples
 def split_sequences(sequences, n_steps_in, n_steps_out):
@@ -23,22 +36,37 @@ def split_sequences(sequences, n_steps_in, n_steps_out):
 		y.append(seq_y)
 	return array(X), array(y)
 
-# define input sequence
-in_seq1 = array([10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120])
-in_seq2 = array([15, 25, 35, 45, 55, 65, 75, 85, 95, 105, 115, 125])
-out_seq = array([in_seq1[i]+in_seq2[i] for i in range(len(in_seq1))])
+inputfile = sys.argv[1] 
+outputFile = inputfile + "_multi_" + "_model"
+print ('Input CSV file is '+inputfile)
+print ('Output model file is '+outputFile)
+
+#load and scale the input data
+dataframe = read_csv(inputfile, usecols=[4])
+dataset = dataframe.values
+dataset = dataset.astype('float32')
+scaler = MinMaxScaler(feature_range=(0, 1))
+dataset = scaler.fit_transform(dataset)
+
+#load and test volumen
+volumeframe = read_csv(inputfile, usecols=[6])
+volumeset = volumeframe.values
+volumeset = volumeset.astype('float32')
+scaler = MinMaxScaler(feature_range=(0, 1))
+volumeset = scaler.fit_transform(volumeset)
+
+#Set learn train
+out_seq = array([dataset[i]*2 for i in range(len(volumeset))])
 # convert to [rows, columns] structure
-in_seq1 = in_seq1.reshape((len(in_seq1), 1))
-in_seq2 = in_seq2.reshape((len(in_seq2), 1))
+dataset = dataset.reshape((len(dataset), 1))
+volumeset = volumeset.reshape((len(volumeset), 1))
 out_seq = out_seq.reshape((len(out_seq), 1))
-# horizontally stack columns
-dataset = hstack((in_seq1, in_seq2))
-# choose a number of time steps
-n_steps_in, n_steps_out = 3, 2
-# covert into input/output
+
+dataset = hstack((dataset, volumeset))
+n_steps_in, n_steps_out = 10, 3
 X, y = split_sequences(dataset, n_steps_in, n_steps_out)
-# the dataset knows the number of features, e.g. 2
 n_features = X.shape[2]
+
 # define model
 model = Sequential()
 model.add(LSTM(200, activation='relu', input_shape=(n_steps_in, n_features)))
@@ -46,8 +74,11 @@ model.add(RepeatVector(n_steps_out))
 model.add(LSTM(200, activation='relu', return_sequences=True))
 model.add(TimeDistributed(Dense(n_features)))
 model.compile(optimizer='adam', loss='mse')
-# fit model
-model.fit(X, y, epochs=300, verbose=0)
+model.fit(X, y, epochs=100, verbose=2)
+
+# save model
+model.save(inputfile+"_multi_model")
+
 # demonstrate prediction
 x_input = array([[60, 65], [70, 75], [80, 85]])
 x_input = x_input.reshape((1, n_steps_in, n_features))
