@@ -89,7 +89,7 @@ def cycle_analysis(data, split_date, cycle,mode='additive', forecast_plot = Fals
 df = pd.read_csv('VIX_daily.csv', usecols=[0,4])
 df.head()
 
-for i in range(319,320):
+for i in range(15,320):
     cycle_analysis(df, '2017-01-01', i, 'additive', forecast_plot=False)
 
 MAX_rpc.printData("RPC maximum ")
