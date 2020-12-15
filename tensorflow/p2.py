@@ -23,15 +23,43 @@ from keras.layers import RepeatVector
 from keras.layers import TimeDistributed
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
 
-def cycle_analysis(data, split_len, cycle,mode='additive', forecast_plot = False, print_ind=False):
-    trainLen = int(len(data)*.90)
-    testLen  = len(data)-trainLen
-    training, testing = data[0:trainLen,:], data[trainLen:trainLen+testLen,:]
-    
-    predict_period = len(pd.date_range(trainLen, max(data.index)))
+class SaveData:
+    def __init__(self, data, cycle):
+        self.data = data
+        self.cycle = cycle
+
+    def getData(self):
+        return self.data
+
+    def checkBigger(self, data, cycle):
+        if (data>self.data):
+            self.data = data
+            self.cycle = cycle
+
+    def checkSmaller(self, data, cycle):
+        if (data<self.data):
+            self.data = data
+            self.cycle = cycle
+
+    def setDataCycle(self, data, cycle):
+        self.data = data
+        self.cycle = cycle
+
+    def printData(self, string):
+        print(f"{string} data: {self.data} at cycle: {self.cycle}")
+
+MIN_mse = SaveData(20000, 0)
+MIN_mae = SaveData(20000, 0)
+MAX_rpc = SaveData(0,0)
+
+def cycle_analysis(data, split_date, cycle,mode='additive', forecast_plot = False):
+    training = data[2000:6500].iloc[:-1,]
+    testing = data[6500:]
+    predict_period = len(pd.date_range(split_date,max(data.index)))
     df = training.reset_index()
-    df.columns = ['ds','y']
+    df.columns = ['index','ds','y']
     m = Prophet(weekly_seasonality=False,yearly_seasonality=False,daily_seasonality=False)
     m.add_seasonality('self_define_cycle',period=cycle,fourier_order=8,mode=mode)
     m.fit(df)
@@ -46,20 +74,26 @@ def cycle_analysis(data, split_len, cycle,mode='additive', forecast_plot = False
     ret = max(forecast.self_define_cycle)-min(forecast.self_define_cycle)
     model_tb = forecast['yhat']
     model_tb.index = forecast['ds'].map(lambda x:x.strftime("%Y-%m-%d"))
-    out_tb = pd.concat([testing,model_tb],axis=1)
-    out_tb = out_tb[~out_tb.iloc[:,0].isnull()]
-    out_tb = out_tb[~out_tb.iloc[:,1].isnull()]
-    mse = mean_squared_error(out_tb.iloc[:,0],out_tb.iloc[:,1])
-    rep = [ret,mse]
-    if print_ind:
-        print ("Projected return per cycle: {}".format(round(rep[0],2)))
-        print ("MSE: {}".format(round(rep[1],4)))
-    return rep
+    
+
+    Rpc = round(ret,3)
+    Mse = mean_squared_error(training["y"], forecast['yhat'])
+    Mae = mean_absolute_error(training["y"], forecast['yhat'])        
+    
+    MAX_rpc.checkBigger(Rpc, cycle)
+    MIN_mse.checkSmaller(Mse, cycle)
+    MIN_mae.checkSmaller(Mae, cycle)
+
+    return 0
 
 df = pd.read_csv('VIX_daily.csv', usecols=[0,4])
 df.head()
 
-for i in range(320):
-    cycle_analysis(df, 0.9, i+50, 'additive', forecast_plot=False, print_ind=False)
+for i in range(319,320):
+    cycle_analysis(df, '2017-01-01', i, 'additive', forecast_plot=False)
+
+MAX_rpc.printData("RPC maximum ")
+MIN_mse.printData("MSE minimum ")
+MIN_mae.printData("MAE minimum ")
 
 print("Done.")
