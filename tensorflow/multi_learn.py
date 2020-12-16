@@ -45,42 +45,40 @@ print ('Output model file is '+outputFile)
 dataframe = read_csv(inputfile, usecols=[4])
 dataset = dataframe.values
 dataset = dataset.astype('float32')
-scaler = MinMaxScaler(feature_range=(0, 1))
-dataset = scaler.fit_transform(dataset)
+scalerData = MinMaxScaler(feature_range=(0, 1))
+dataset = scalerData.fit_transform(dataset)
+trainLen = int(len(dataset)*0.9)
+dataset= dataset[0:trainLen,:] # levagjuk a tesztadatokat a vegerol
 
 #load and test volumen
 volumeframe = read_csv(inputfile, usecols=[6])
 volumeset = volumeframe.values
 volumeset = volumeset.astype('float32')
-scaler = MinMaxScaler(feature_range=(0, 1))
-volumeset = scaler.fit_transform(volumeset)
+scalerVol = MinMaxScaler(feature_range=(0, 1))
+volumeset = scalerVol.fit_transform(volumeset)
+volumeset= volumeset[0:trainLen,:] # levagjuk a tesztadatokat a vegerol
 
 #Set learn train
-out_seq = array([dataset[i]*2 for i in range(len(volumeset))])
+
 # convert to [rows, columns] structure
 dataset = dataset.reshape((len(dataset), 1))
 volumeset = volumeset.reshape((len(volumeset), 1))
-out_seq = out_seq.reshape((len(out_seq), 1))
 
-dataset = hstack((dataset, volumeset))
-n_steps_in, n_steps_out = 10, 3
-X, y = split_sequences(dataset, n_steps_in, n_steps_out)
-n_features = X.shape[2]
+MixDataSet = hstack((dataset, volumeset))
+n_steps_in, n_steps_out = 4, 2
+X, ytemp = split_sequences(MixDataSet, n_steps_in, n_steps_out)
+n_features_in = X.shape[2]
+n_features_out = 1
+Xtemp, y = split_sequences(dataset, n_steps_in, n_steps_out)
 
 # define model
 model = Sequential()
-model.add(LSTM(200, activation='relu', input_shape=(n_steps_in, n_features)))
+model.add(LSTM(200, activation='relu', input_shape=(n_steps_in, n_features_in)))
 model.add(RepeatVector(n_steps_out))
 model.add(LSTM(200, activation='relu', return_sequences=True))
-model.add(TimeDistributed(Dense(n_features)))
-model.compile(optimizer='adam', loss='mse')
-model.fit(X, y, epochs=100, verbose=2)
+model.add(TimeDistributed(Dense(n_features_out, activation="sigmoid")))
+model.compile(loss='categorical_crossentropy', optimizer="RMSprop", metrics=['acc'])
+model.fit(X, y, epochs=100, verbose=2, )
 
 # save model
 model.save(inputfile+"_multi_model")
-
-# demonstrate prediction
-x_input = array([[60, 65], [70, 75], [80, 85]])
-x_input = x_input.reshape((1, n_steps_in, n_features))
-yhat = model.predict(x_input, verbose=0)
-print(yhat)
