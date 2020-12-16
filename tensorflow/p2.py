@@ -89,11 +89,16 @@ def cycle_analysis(data, split_date, cycle,mode='additive', forecast_plot = Fals
 df = pd.read_csv('VIX_daily.csv', usecols=[0,4])
 df.head()
 
-for i in range(15,320):
-    cycle_analysis(df, '2017-01-01', i, 'additive', forecast_plot=False)
+for i in range(282,284):
+    cycle_analysis(df, '2017-01-01', i, 'additive', forecast_plot=True)
 
 MAX_rpc.printData("RPC maximum ")
 MIN_mse.printData("MSE minimum ")
 MIN_mae.printData("MAE minimum ")
 
 print("Done.")
+
+#VIX!
+#RPC maximum  data: 4.653 at cycle: 283
+#MSE minimum  data: 25.494961623712165 at cycle: 282
+#MAE minimum  data: 3.5114502841168234 at cycle: 282
