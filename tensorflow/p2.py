@@ -53,7 +53,6 @@ class SaveData:
 
 MIN_mse = SaveData(20000, 0)
 MIN_mae = SaveData(20000, 0)
-MAX_rpc = SaveData(0,0)
 
 def cycle_analysis(data, split_date, cycle, mode='additive', forecast_plot = False):
     training = data[0:-300].iloc[:-1,]
@@ -68,35 +67,33 @@ def cycle_analysis(data, split_date, cycle, mode='additive', forecast_plot = Fal
     m = Prophet(
     growth="linear",
     #holidays=holidays,
-    seasonality_mode="multiplicative",
+    seasonality_mode="additive",
     changepoint_prior_scale=30,
     seasonality_prior_scale=35,
-    ###cap=3.00,
-    ###floor=.65*125,
     holidays_prior_scale=20,
     daily_seasonality=False,
     weekly_seasonality=False,
     yearly_seasonality=False,
     ).add_seasonality(
-        name='monthly',
-        period=30.5,
-        fourier_order=55
+        name='spec',
+        period=cycle,
+        fourier_order=16
     #).add_seasonality(
     #    name='daily',
     #    period=1,
     #    fourier_order=15
-    ).add_seasonality(
-        name='weekly',
-        period=7,
-        fourier_order=20
-    ).add_seasonality(
-        name='yearly',
-        period=365.25,
-        fourier_order=20
+    # ).add_seasonality(
+    #     name='weekly',
+    #     period=7,
+    #     fourier_order=20
+    # ).add_seasonality(
+    #     name='yearly',
+    #     period=365.25,
+    #     fourier_order=20
     ).add_seasonality(
         name='quarterly',
         period=365.25/4,
-        fourier_order=5,
+        fourier_order=32,
         prior_scale=15)
 
 
@@ -124,17 +121,14 @@ def cycle_analysis(data, split_date, cycle, mode='additive', forecast_plot = Fal
         plt.xlabel('Date', fontsize=12, fontweight='bold', color='gray')
         plt.ylabel('Price', fontsize=12, fontweight='bold', color='gray')
         plt.show()
-    ret = max(forecast.monthly)-min(forecast.monthly)
-    model_tb = forecast['yhat']
-    model_tb.index = forecast['ds'].map(lambda x:x.strftime("%Y-%m-%d"))
-    
 
-    Rpc = round(ret,3)
+    #model_tb = forecast['yhat']
+    #model_tb.index = forecast['ds'].map(lambda x:x.strftime("%Y-%m-%d"))
+    
     temp = forecast['yhat']
     Mse = mean_squared_error(training["y"], temp[0:len(training["y"])] )
     Mae = mean_absolute_error(training["y"], temp[0:len(training["y"])] )
     
-    MAX_rpc.checkBigger(Rpc, cycle)
     MIN_mse.checkSmaller(Mse, cycle)
     MIN_mae.checkSmaller(Mae, cycle)
 
@@ -143,10 +137,9 @@ def cycle_analysis(data, split_date, cycle, mode='additive', forecast_plot = Fal
 df = pd.read_csv('DIS_daily.csv', usecols=[0,4])
 df.head()
 
-for i in range(170,320):
-    cycle_analysis(df, '2017-01-01', i, 'multiplicative', forecast_plot=False)
+for i in range(296,297):
+    cycle_analysis(df, '2017-01-01', i, 'multiplicative', forecast_plot=True)
 
-MAX_rpc.printData("RPC maximum ")
 MIN_mse.printData("MSE minimum ")
 MIN_mae.printData("MAE minimum ")
 
