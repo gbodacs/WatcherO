@@ -68,7 +68,6 @@ class SaveData:
 
 MIN_mse = SaveData(20000, 0)
 MIN_mae = SaveData(20000, 0)
-MAX_rpc = SaveData(0,0)
 
 def cycle_analysis(data, split_date, cycle,mode='additive', forecast_plot = False):
     training = data[2000:6500].iloc[:-1,]
@@ -96,7 +95,6 @@ def cycle_analysis(data, split_date, cycle,mode='additive', forecast_plot = Fals
     Mse = mean_squared_error(training["y"], forecast['yhat'])
     Mae = mean_absolute_error(training["y"], forecast['yhat'])        
     
-    MAX_rpc.checkBigger(Rpc, cycle)
     MIN_mse.checkSmaller(Mse, cycle)
     MIN_mae.checkSmaller(Mae, cycle)
 
@@ -108,7 +106,6 @@ df.head()
 for i in range(282,284):
     cycle_analysis(df, '2017-01-01', i, 'additive', forecast_plot=True)
 
-MAX_rpc.printData("RPC maximum ")
 MIN_mse.printData("MSE minimum ")
 MIN_mae.printData("MAE minimum ")
 
