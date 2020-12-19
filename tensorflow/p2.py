@@ -166,3 +166,30 @@ print("Done.")
 #RPC maximum  data: 4.653 at cycle: 283
 #MSE minimum  data: 25.494961623712165 at cycle: 282
 #MAE minimum  data: 3.5114502841168234 at cycle: 282
+
+#VIX! 2000-6500 learn, 6500-7770 test
+#RPC maximum  data: 4.653 at cycle: 283
+#MSE minimum  data: 25.494961623712165 at cycle: 282
+#MAE minimum  data: 3.5114502841168234 at cycle: 282
+
+#VIX! 3500:6770 learn
+#RPC maximum  data: 4.852 at cycle: 279
+#MSE minimum  data: 21.29917709610351 at cycle: 209
+#MAE minimum  data: 3.049376297045781 at cycle: 279
+
+#IBM  3500:6770 learn
+#RPC maximum  data: 0.825 at cycle: 281
+#MSE minimum  data: 2.651962963011946 at cycle: 275
+#MAE minimum  data: 1.1478663267450626 at cycle: 187
+
+#DIS  3500:6770 learn
+#RPC maximum  data: 0.091 at cycle: 295
+#MSE minimum  data: 0.016806448362202537 at cycle: 296
+#MAE minimum  data: 0.08833902777663996 at cycle: 101
+
+#DIS  8380:-365
+#RPC maximum  data: 3.799 at cycle: 211
+#MSE minimum  data: 19.819353471678923 at cycle: 274
+#MAE minimum  data: 3.0310232513501534 at cycle: 286
+
+#DIS 8015:-1105
