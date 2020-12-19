@@ -14,15 +14,15 @@ import glob, os
 import math
 import random
 import sys, getopt
-from keras.optimizers import SGD
-from keras.models import Sequential
-from keras.models import load_model
-from keras.callbacks import Callback
-from keras.layers import Dense
-from keras.layers import Dropout
-from keras.layers import LSTM
-from keras.layers import RepeatVector
-from keras.layers import TimeDistributed
+# from keras.optimizers import SGD
+# from keras.models import Sequential
+# from keras.models import load_model
+# from keras.callbacks import Callback
+# from keras.layers import Dense
+# from keras.layers import Dropout
+# from keras.layers import LSTM
+# from keras.layers import RepeatVector
+# from keras.layers import TimeDistributed
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
@@ -134,6 +134,7 @@ def cycle_analysis(data, split_date, cycle,mode='additive', forecast_plot = Fals
         plt.plot(testing.index,testing.values,'.',color='#ff3333',alpha=0.6)
         plt.xlabel('Date',fontsize=12,fontweight='bold',color='gray')
         plt.ylabel('Price',fontsize=12,fontweight='bold',color='gray')
+        m.plot_components(forecast)
         plt.show()
     
     temp = forecast['yhat']
@@ -144,6 +145,8 @@ def cycle_analysis(data, split_date, cycle,mode='additive', forecast_plot = Fals
     dm.AddMSE(Mse, cycle)
     dm.AddMAE(Mae, cycle)
     dm.AddSLE(Sle, cycle)
+
+    print(f"MSE: {Mse} - MAE: {Mae} at cycle: {cycle}")
 
     return 0
 
