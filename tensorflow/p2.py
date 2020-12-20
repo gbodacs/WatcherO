@@ -78,10 +78,6 @@ def cycle_analysis(data, cycle, mode='additive', forecast_plot = False):
     #m = Prophet(weekly_seasonality=False,yearly_seasonality=False,daily_seasonality=False)
     #m.add_seasonality('self_define_cycle',period=cycle,fourier_order=32,mode=mode)
 
-    # sort by salary (Descending order)
-    employees.sort(key=get_salary, reverse=True)
-    print(employees, end='\n\n')
-
     m = Prophet(
     growth="linear",
     #holidays=holidays,
@@ -95,7 +91,7 @@ def cycle_analysis(data, cycle, mode='additive', forecast_plot = False):
     ).add_seasonality(
         name='spec',
         period=cycle,
-        fourier_order=32
+        fourier_order=16
     #).add_seasonality(
     #    name='daily',
     #    period=1,
@@ -115,17 +111,6 @@ def cycle_analysis(data, cycle, mode='additive', forecast_plot = False):
     #     fourier_order=32,
     #     prior_scale=15)
 
-MIN_mse = SaveData(20000, 0)
-MIN_mae = SaveData(20000, 0)
-
-def cycle_analysis(data, split_date, cycle,mode='additive', forecast_plot = False):
-    training = data[2000:6500].iloc[:-1,]
-    testing = data[6500:]
-    predict_period = len(pd.date_range(split_date,max(data.index)))
-    df = training.reset_index()
-    df.columns = ['index','ds','y']
-    m = Prophet(weekly_seasonality=False,yearly_seasonality=False,daily_seasonality=False)
-    m.add_seasonality('self_define_cycle',period=cycle,fourier_order=8,mode=mode)
     m.fit(df)
     future = m.make_future_dataframe(periods=predict_period)
     forecast = m.predict(future)
@@ -152,10 +137,11 @@ os.chdir("./data")
 for fileName in glob.glob("*.csv"):
     df = pd.read_csv(fileName, usecols=[0,4])
     dm.Reset()
+    print("starting: "+fileName)
     for i in range(10,370):
         cycle_analysis(df, i, 'additive', forecast_plot=False)
     print(fileName)
-    dm.FinalizeAndPrint(fileName)
+    dm.FinalizeAndPrint(fileName+"1")
 
 print("Done.")
 

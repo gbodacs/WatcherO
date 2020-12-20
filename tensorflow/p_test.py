@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import (YEARLY, DateFormatter, rrulewrapper, RRuleLocator, drange)
 import numpy as np
 import datetime
-import glob
+import glob, os
+import pandas as pd
 
 class DataManager:
     def __init__(self):
@@ -34,6 +35,14 @@ class DataManager:
         for x in range(5):
             print(f"{x+1}. SGE - {self.SGE[x][0]} at cycles: {self.SGE[x][1]}")
         print("----------------------------")
+
+os.chdir("./data")
+for fileName in glob.glob("*.csv"):
+    df = pd.read_csv(fileName, usecols=[0,4])
+    f = open(fileName+".txt", "w")
+    f.write("----------------------------")
+    f.close()
+
 
 dm = DataManager()
 dm.AddMAE(1,22)
