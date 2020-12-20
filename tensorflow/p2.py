@@ -75,6 +75,8 @@ def cycle_analysis(data, cycle, mode='additive', forecast_plot = False):
     predict_period = 1500#len(pd.date_range(split_date,max(data.index)))
     df = training.reset_index()
     df.columns = ['index','ds','y']
+    training.columns = ['ds','y']
+    testing.columns = ['ds','y']
     #m = Prophet(weekly_seasonality=False,yearly_seasonality=False,daily_seasonality=False)
     #m.add_seasonality('self_define_cycle',period=cycle,fourier_order=32,mode=mode)
 
@@ -116,16 +118,28 @@ def cycle_analysis(data, cycle, mode='additive', forecast_plot = False):
     forecast = m.predict(future)
     if forecast_plot:
         m.plot(forecast)
-        plt.plot(testing.index,testing.values,'.',color='#ff3333',alpha=0.6)
-        plt.xlabel('Date',fontsize=12,fontweight='bold',color='gray')
-        plt.ylabel('Price',fontsize=12,fontweight='bold',color='gray')
-        m.plot_components(forecast)
+
+        # trainDate = training["ds"]
+        # trainValue = training["y"]
+        # plt.plot(trainDate, trainValue, '.', color='#cccccc', alpha=0.6)
+
+        testDate = testing.values[:,0] #date
+        testValue = testing.values[:,1] #value
+
+        conv_dates = []
+        for i in range(len(testing.values[:,0])):
+            date1 = datetime.datetime.strptime(testing.values[i,0], '%Y-%m-%d').date()
+            conv_dates = numpy.append(conv_dates, date1)
+        plt.plot(conv_dates, testValue,'.', color='#ff3333',alpha=0.6)
+
+        plt.xlabel('Date', fontsize=12, fontweight='bold', color='gray')
+        plt.ylabel('Price', fontsize=12, fontweight='bold', color='gray')
         plt.show()
     
     temp = forecast['yhat']
-    Mse = mean_squared_error(training["y"], temp[0:len(training["y"])] )
-    Mae = mean_absolute_error(training["y"], temp[0:len(training["y"])] )
-    Sle = mean_squared_log_error(training["y"], temp[0:len(training["y"])] )
+    Mse = mean_squared_error(testing["y"], temp[0:len(testing["y"])] )
+    Mae = mean_absolute_error(testing["y"], temp[0:len(testing["y"])] )
+    Sle = mean_squared_log_error(testing["y"], temp[0:len(testing["y"])] )
     
     dm.AddMSE(Mse, cycle)
     dm.AddMAE(Mae, cycle)
