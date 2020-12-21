@@ -48,31 +48,64 @@ class DataManager:
         self.MAE.clear()
         self.SLE.clear()
 
+    def Write(self, fileName, lines):
+        if (fileName == ""):
+            for x in lines:
+                print(x, end="")
+        else:
+            f = open(fileName+".txt", "w")
+            for x in lines:
+                f.write(x)
+            f.close()
+
     def FinalizeAndPrint(self, fileName):
         self.MSE.sort(key=lambda x:x[0])
         self.MAE.sort(key=lambda x:x[0])
         self.SLE.sort(key=lambda x:x[0])
 
-        f = open(fileName+".txt", "w")
+        lines = list()
+        numToWrite = 10
+        
+        lines.append("----------------------------\n")
+        r_mse = 0
+        if (len(self.MSE)>numToWrite):
+            r_mse = numToWrite
+        else:
+            r_mse = len(self.MSE)
+        for x in range(r_mse):
+            lines.append(f"{x+1}. MSE - {self.MSE[x][0]} at cycles: {self.MSE[x][1]}\n")
 
-        f.write("----------------------------")
-        for x in range(5):
-            f.write(f"{x+1}. MSE - {self.MSE[x][0]} at cycles: {self.MSE[x][1]}")
-        f.write("----------------------------")
-        for x in range(5):
-            f.write(f"{x+1}. MAE - {self.MAE[x][0]} at cycles: {self.MAE[x][1]}")
-        f.write("----------------------------")
-        for x in range(5):
-            f.write(f"{x+1}. SLE - {self.SLE[x][0]} at cycles: {self.SLE[x][1]}")
-        f.write("----------------------------")
-        f.close()
+        lines.append("----------------------------\n")
+        r_mae = 0
+        if (len(self.MAE)>numToWrite):
+            r_mae = numToWrite
+        else:
+            r_mae = len(self.MAE)
+        for x in range(r_mae):
+            lines.append(f"{x+1}. MAE - {self.MAE[x][0]} at cycles: {self.MAE[x][1]}\n")
 
-dm = DataManager()
+        lines.append("----------------------------\n")
+        r_sle = 0
+        if (len(self.SLE)>numToWrite):
+            r_sle = numToWrite
+        else:
+            r_sle = len(self.SLE)
+        for x in range(r_sle):
+            lines.append(f"{x+1}. SLE - {self.SLE[x][0]} at cycles: {self.SLE[x][1]}\n")
+        lines.append("----------------------------\n")
 
-def cycle_analysis(data, cycle, mode='additive', forecast_plot = False):
-    training = data[0:-300].iloc[:-1,]
-    testing = data[-300:]
-    predict_period = 1500#len(pd.date_range(split_date,max(data.index)))
+        self.Write(fileName, lines)
+
+def cycle_analysis(data, cycle, forecast_plot = False):
+    training = []
+    testing = []
+    if (len(data) > 8000 ):
+        training = data[-4000:-420].iloc[:-1,]
+        testing = data[-420:]
+    else:
+        training = data[0:-700].iloc[:-1,]
+        testing = data[-700:]
+    predict_period = 1100#len(pd.date_range(split_date,max(data.index)))
     df = training.reset_index()
     df.columns = ['index','ds','y']
     training.columns = ['ds','y']
@@ -83,35 +116,20 @@ def cycle_analysis(data, cycle, mode='additive', forecast_plot = False):
     m = Prophet(
     growth="linear",
     #holidays=holidays,
-    seasonality_mode=mode,
-    changepoint_prior_scale=30,
-    seasonality_prior_scale=35,
-    holidays_prior_scale=20,
+    seasonality_mode='additive',
+    changepoint_prior_scale=0.3,
+    seasonality_prior_scale=0.35,
+    holidays_prior_scale=1.2,
+    # changepoint_prior_scale=30,
+    # seasonality_prior_scale=35,
+    # holidays_prior_scale=20,
     daily_seasonality=False,
     weekly_seasonality=False,
     yearly_seasonality=False,
-    ).add_seasonality(
-        name='spec',
-        period=cycle,
-        fourier_order=16
-    #).add_seasonality(
-    #    name='daily',
-    #    period=1,
-    #    fourier_order=15
-    # ).add_seasonality(
-    #     name='weekly',
-    #     period=7,
-    #     fourier_order=20
-    # ).add_seasonality(
-    #     name='yearly',
-    #     period=365.25,
-    #     fourier_order=20
     )
-    # .add_seasonality(
-    #     name='quarterly',
-    #     period=365.25/4,
-    #     fourier_order=32,
-    #     prior_scale=15)
+    
+    for c in cycle:
+        m.add_seasonality(name='spec', period=c, fourier_order=16) # prior_scale=15
 
     m.fit(df)
     future = m.make_future_dataframe(periods=predict_period)
@@ -127,10 +145,10 @@ def cycle_analysis(data, cycle, mode='additive', forecast_plot = False):
         testValue = testing.values[:,1] #value
 
         conv_dates = []
-        for i in range(len(testing.values[:,0])):
+        for i in range(len(testDate)):
             date1 = datetime.datetime.strptime(testing.values[i,0], '%Y-%m-%d').date()
             conv_dates = numpy.append(conv_dates, date1)
-        plt.plot(conv_dates, testValue,'.', color='#ff3333',alpha=0.6)
+        plt.plot(conv_dates, testValue, '.', color='#ff3333', alpha=0.6)
 
         plt.xlabel('Date', fontsize=12, fontweight='bold', color='gray')
         plt.ylabel('Price', fontsize=12, fontweight='bold', color='gray')
@@ -149,17 +167,38 @@ def cycle_analysis(data, cycle, mode='additive', forecast_plot = False):
 
     return 0
 
-
-os.chdir("./data")
-for fileName in glob.glob("*.csv"):
+def RunOneTest():
+    fileName = "./data/VIX_daily.csv"
     df = pd.read_csv(fileName, usecols=[0,4])
-    dm.Reset()
-    print("starting: "+fileName)
-    for i in range(10,370):
-        cycle_analysis(df, i, 'additive', forecast_plot=False)
-    print(fileName)
-    dm.FinalizeAndPrint(fileName+"1")
+    print("One Test  - Processing: "+fileName)
+    cycle_analysis(df, [365], forecast_plot=True)
+    dm.FinalizeAndPrint("")
 
+def RunOneCycle():
+    os.chdir("./data")
+    for fileName in glob.glob("*.csv"):
+        df = pd.read_csv(fileName, usecols=[0,4])
+        dm.Reset()
+        print("Search 1 parameter processing: "+fileName)
+        for i in range(10,370):
+            cycle_analysis(df, [i], forecast_plot=False)
+        print(fileName)
+        dm.FinalizeAndPrint(fileName+"1")
+
+def RunTwoCycle():
+    os.chdir("./data")
+    for fileName in glob.glob("*.csv"):
+        df = pd.read_csv(fileName, usecols=[0,4])
+        dm.Reset()
+        print("Search 2 parameter processing: "+fileName)
+        for i in range(10,366):
+            for o in range(i+1,366):
+                cycle_analysis(df, [i,o], forecast_plot=False)
+        print(fileName)
+        dm.FinalizeAndPrint(fileName+"2")
+
+dm = DataManager()
+RunTwoCycle()
 print("Done.")
 
 #VIX!
