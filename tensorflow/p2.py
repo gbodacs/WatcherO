@@ -100,8 +100,8 @@ def cycle_analysis(data, cycle, forecast_plot = False):
     training = []
     testing = []
     if (len(data) > 6000 ):
-        training = data[-1400:-130].iloc[:-1,]
-        testing = data[-130:]
+        training = data[-1500:-5].iloc[:-1,]
+        testing = data[-5:]
     else:
         training = data[0:-200].iloc[:-1,]
         testing = data[-200:]
@@ -132,7 +132,7 @@ def cycle_analysis(data, cycle, forecast_plot = False):
     )
     
     for c in cycle:
-        m.add_seasonality(name='spec', period=c, fourier_order=32) # prior_scale=15
+        m.add_seasonality(name='spec', period=c, fourier_order=40) # prior_scale=15
 
     m.fit(df)
     future = m.make_future_dataframe(periods=predict_period)
@@ -171,10 +171,10 @@ def cycle_analysis(data, cycle, forecast_plot = False):
     return 0
 
 def RunOneTest():
-    fileName = "./data/VIX_daily.csv"
+    fileName = "./data/VIX2_daily.csv"
     df = pd.read_csv(fileName, usecols=[0,4])
     print("One Test  - Processing: "+fileName)
-    cycle_analysis(df, [51, 196, 127, 245, 294, 315, 445, 771], forecast_plot=True) 
+    cycle_analysis(df, [51, 196, 127, 245, 294, 315, 365, 445, 771], forecast_plot=True) 
     #[31, 87, 127, 154, 176, 211, 245, 295, 372, 616, 682, 729, 771]
     #[51, 196, 127, 245, 294, 315, 445, 771] 
     dm.FinalizeAndPrint("")
