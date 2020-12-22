@@ -99,13 +99,13 @@ class DataManager:
 def cycle_analysis(data, cycle, forecast_plot = False):
     training = []
     testing = []
-    if (len(data) > 8000 ):
-        training = data[-4000:-420].iloc[:-1,]
-        testing = data[-420:]
+    if (len(data) > 6000 ):
+        training = data[-1400:-130].iloc[:-1,]
+        testing = data[-130:]
     else:
-        training = data[0:-700].iloc[:-1,]
-        testing = data[-700:]
-    predict_period = 1100#len(pd.date_range(split_date,max(data.index)))
+        training = data[0:-200].iloc[:-1,]
+        testing = data[-200:]
+    predict_period = 600#len(pd.date_range(split_date,max(data.index)))
     df = training.reset_index()
     df.columns = ['index','ds','y']
     training.columns = ['ds','y']
@@ -116,20 +116,23 @@ def cycle_analysis(data, cycle, forecast_plot = False):
     m = Prophet(
     growth="linear",
     #holidays=holidays,
-    seasonality_mode='additive',
-    changepoint_prior_scale=0.3,
-    seasonality_prior_scale=0.35,
-    holidays_prior_scale=1.2,
-    # changepoint_prior_scale=30,
-    # seasonality_prior_scale=35,
-    # holidays_prior_scale=20,
+    seasonality_mode='multiplicative',  # mcmc-vel muiltiplicative-ot kell hasznalni --- map-pel additive-ot
+    #changepoint_prior_scale=0.3,
+    #seasonality_prior_scale=0.3,
+    interval_width=0.8,                 # egy cycle szelessegenek rugalmassaga
+    #holidays_prior_scale=20,
+    mcmc_samples=60,
+    #changepoint_prior_scale=30,
+    #changepoint_range=0.91,
+    #seasonality_prior_scale=35,
+    #holidays_prior_scale=20,
     daily_seasonality=False,
     weekly_seasonality=False,
-    yearly_seasonality=False,
+    yearly_seasonality=True,
     )
     
     for c in cycle:
-        m.add_seasonality(name='spec', period=c, fourier_order=16) # prior_scale=15
+        m.add_seasonality(name='spec', period=c, fourier_order=32) # prior_scale=15
 
     m.fit(df)
     future = m.make_future_dataframe(periods=predict_period)
@@ -171,7 +174,9 @@ def RunOneTest():
     fileName = "./data/VIX_daily.csv"
     df = pd.read_csv(fileName, usecols=[0,4])
     print("One Test  - Processing: "+fileName)
-    cycle_analysis(df, [365], forecast_plot=True)
+    cycle_analysis(df, [51, 196, 127, 245, 294, 315, 445, 771], forecast_plot=True) 
+    #[31, 87, 127, 154, 176, 211, 245, 295, 372, 616, 682, 729, 771]
+    #[51, 196, 127, 245, 294, 315, 445, 771] 
     dm.FinalizeAndPrint("")
 
 def RunOneCycle():
@@ -198,7 +203,7 @@ def RunTwoCycle():
         dm.FinalizeAndPrint(fileName+"2")
 
 dm = DataManager()
-RunTwoCycle()
+RunOneTest()
 print("Done.")
 
 #VIX!
