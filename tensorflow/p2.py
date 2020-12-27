@@ -100,8 +100,8 @@ def cycle_analysis(data, cycle, forecast_plot = False):
     training = []
     testing = []
     if (len(data) > 6000 ):
-        training = data[-1500:-5].iloc[:-1,]
-        testing = data[-5:]
+        training = data[-1800:-250].iloc[:-1,]
+        testing = data[-250:]
     else:
         training = data[0:-200].iloc[:-1,]
         testing = data[-200:]
